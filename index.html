@@ -10,23 +10,51 @@
   </style>
 </head>
 <body>
-  <h2>تحليل بث من منصة Kick 🎥</h2>
+  <h2>تحليل بث من منصة 🎥 Kick</h2>
   <input type="text" id="username" placeholder="ادخل اسم القناة">
-  <button onclick="getKickInfo()">تحليل</button>
+  <button onclick="startAuto()">تحليل</button>
   <div id="result" class="result"></div>
+
   <script>
-    async function getKickInfo(){
-      const u = document.getElementById("username").value;
+    let intervalId;
+    let lastMessageCount = null;
+
+    function startAuto() {
+      clearInterval(intervalId);
+      getKickInfo(); // أول تحميل
+      intervalId = setInterval(getKickInfo, 5000); // تحديث كل 5 ثواني
+    }
+
+    async function getKickInfo() {
+      const u = document.getElementById("username").value.trim().toLowerCase();
       const r = document.getElementById("result");
       if (!u) { r.innerHTML = "⚠️ أدخل اسم القناة"; return; }
+
       try {
         const res = await fetch(`https://kick.com/api/v2/channels/${u}`);
         if (!res.ok) { r.innerHTML = "❌ فشل جلب البيانات"; return; }
         const d = await res.json(), L = d.livestream, C = d.chatroom;
-        r.innerHTML = `📺 القناة: <strong>${d.slug}</strong><br>🎥 مباشر: <strong>${L ? 'نعم' : 'لا'}</strong><br>` +
-          (L ? `👥 المشاهدين الآن: <strong>${L.viewer_count ?? 'غير متوفر'}</strong><br>` : '') +
-          `💬 رسائل الشات: <strong>${C?.message_count ?? 'غير متوفر'}</strong>`;
-      } catch(e){
+
+        const viewerCount = L?.viewer_count ?? 'غير متوفر';
+        const messageCount = C?.message_count ?? 'غير متوفر';
+
+        r.innerHTML =
+          `📺 القناة: <strong>${d.slug}</strong><br>` +
+          `🎥 مباشر: <strong>${L ? 'نعم' : 'لا'}</strong><br>` +
+          `👥 المشاهدين الآن: <strong>${viewerCount}</strong><br>` +
+          `💬 رسائل الشات: <strong>${messageCount}</strong>`;
+
+        // للتفاعل: نقدر نضيف صوت أو تلوين لو زادت الرسائل
+        if (lastMessageCount !== null && messageCount !== 'غير متوفر') {
+          const diff = messageCount - lastMessageCount;
+          if (diff > 0) {
+            console.log(`📢 عدد الرسائل زاد بـ +${diff}`);
+            // تقدر تشغل صوت هنا إذا تبي
+          }
+        }
+        lastMessageCount = messageCount;
+
+      } catch (e) {
         r.innerHTML = "❌ خطأ أثناء التحليل";
       }
     }
